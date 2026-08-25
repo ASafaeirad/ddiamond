@@ -98,7 +98,7 @@ What genuinely cannot move: platform, data, timeline, existing systems, non-nego
 
 Defaults taken rather than asked about. Each is a place this could be cheaply wrong.
 
-- <assumption> — <why it is safe enough to assume>
+- <assumption>: <why it is safe enough to assume>
 
 ## Axes of disagreement
 
