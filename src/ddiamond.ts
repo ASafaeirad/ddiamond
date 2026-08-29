@@ -453,76 +453,237 @@ function dashboardHtml(m: Manifest): string {
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(m.title)} — dd</title>
+<title>${escapeHtml(m.title)} — ddiamond</title>
 <style>
-  :root {
-    color-scheme: light dark;
-    --bg: #f6f6f7; --panel: #fff; --ink: #17181c; --muted: #6b7280;
-    --line: #e2e3e7; --accent: #2563eb;
-    --kept: #15803d; --rejected: #b91c1c; --final: #a16207;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #111214; --panel: #191b1f; --ink: #e9eaee; --muted: #9aa1ac;
-      --line: #2c2f36; --accent: #60a5fa;
-      --kept: #4ade80; --rejected: #f87171; --final: #fbbf24;
-    }
-  }
+  :root { color-scheme: dark; --bg: #070a09; --panel: #0d1210; --panel2: #111815;
+    --ink: #e7eee9; --muted: #718078; --line: #26312c; --lime: #baff68;
+    --amber: #ffba52; --red: #ff655f; --cyan: #5de9dc; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-         font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; }
-  header { position: sticky; top: 0; z-index: 5; display: flex; gap: 1rem;
-           align-items: center; flex-wrap: wrap;
-           padding: .75rem 1.25rem; background: var(--panel);
-           border-bottom: 1px solid var(--line); }
-  h1 { font-size: 1rem; margin: 0 1rem 0 0; font-weight: 650; }
-  select, button, textarea { font: inherit; color: inherit; }
-  select { background: var(--bg); border: 1px solid var(--line);
-           border-radius: 6px; padding: .3rem .5rem; }
-  label.toggle { display: flex; align-items: center; gap: .4rem; color: var(--muted); }
-  .grid { display: grid; gap: 1rem; padding: 1.25rem;
-          grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
-  .card { background: var(--panel); border: 1px solid var(--line);
-          border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
-  .card.kept { border-color: var(--kept); }
-  .card.rejected { border-color: var(--rejected); opacity: .72; }
-  .card.final { border-color: var(--final); box-shadow: 0 0 0 2px color-mix(in srgb, var(--final) 30%, transparent); }
-  .card-head { padding: .7rem .9rem; border-bottom: 1px solid var(--line); }
-  .id { font-family: ui-monospace, monospace; font-weight: 700; }
-  .badge { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
-           padding: .1rem .45rem; border-radius: 99px; border: 1px solid currentColor; }
-  .badge.kept { color: var(--kept); } .badge.rejected { color: var(--rejected); }
-  .badge.final { color: var(--final); } .badge.pending { color: var(--muted); }
-  .thesis { margin: .4rem 0 0; }
-  .meta { color: var(--muted); font-size: .82rem; margin-top: .25rem; }
-  iframe { width: 100%; height: 420px; border: 0; border-bottom: 1px solid var(--line);
-           background: #fff; }
-  .verdict { padding: .7rem .9rem; display: flex; flex-direction: column; gap: .5rem; }
-  textarea { width: 100%; min-height: 3.2em; resize: vertical; padding: .45rem .55rem;
-             background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
-  .actions { display: flex; gap: .5rem; flex-wrap: wrap; }
-  button { cursor: pointer; border: 1px solid var(--line); background: var(--bg);
-           border-radius: 6px; padding: .35rem .7rem; }
-  button:hover { border-color: var(--accent); }
-  button.keep:hover { border-color: var(--kept); color: var(--kept); }
-  button.reject:hover { border-color: var(--rejected); color: var(--rejected); }
-  button.final:hover { border-color: var(--final); color: var(--final); }
-  .err { color: var(--rejected); font-size: .85rem; min-height: 1.2em; }
-  .empty { padding: 3rem 1.25rem; color: var(--muted); }
+  [hidden] { display: none !important; }
+  body { margin: 0; overflow: hidden; background: var(--bg); color: var(--ink);
+    font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  body::after { content: ""; position: fixed; inset: 0; z-index: 90; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.014) 3px 4px); }
+  button, textarea, select { color: inherit; font: inherit; }
+  button:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  .boot { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
+    background: var(--bg); transition: opacity .3s, visibility .3s; }
+  .boot.done { visibility: hidden; opacity: 0; }
+  .boot-line { display: flex; gap: 10px; color: var(--lime); }
+  .boot-line i { width: 7px; height: 14px; background: currentColor; animation: blink .55s steps(1) infinite; }
+  .app { display: grid; grid-template-rows: 52px 1fr 38px; height: 100vh; }
+  header { display: grid; grid-template-columns: 240px 1fr auto; border-bottom: 1px solid var(--line); background: #090d0b; }
+  .brand, .path, .health { display: flex; align-items: center; padding: 0 16px; border-right: 1px solid var(--line); }
+  .brand { color: var(--lime); font-weight: 700; letter-spacing: .09em; }
+  .brand::before { content: "◆"; margin-right: 9px; font-size: 9px; animation: blink 1.4s steps(1) infinite; }
+  .path { gap: 8px; color: var(--muted); }
+  .path b { max-width: 32vw; overflow: hidden; color: var(--ink); text-overflow: ellipsis; white-space: nowrap; }
+  .path select { border: 0; background: transparent; color: var(--lime); cursor: pointer; outline-offset: 1px; }
+  .health { gap: 9px; border: 0; white-space: nowrap; }
+  .health i { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 12px var(--amber); }
+  .health.clear i { background: var(--lime); box-shadow: 0 0 12px var(--lime); }
+  main { min-height: 0; display: grid; grid-template-columns: 240px minmax(420px, 1fr) 330px; }
+  aside { position: relative; padding: 16px 11px; border-right: 1px solid var(--line); background: #090d0b; }
+  .label { padding: 0 8px 10px; color: var(--muted); font-size: 10px; letter-spacing: .14em; }
+  .queue { display: grid; gap: 5px; max-height: calc(100vh - 175px); overflow: auto; }
+  .queue-item { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center;
+    width: 100%; padding: 10px 8px; border: 1px solid transparent; background: transparent; text-align: left;
+    cursor: pointer; transition: background .15s, border-color .15s, transform .1s; }
+  .queue-item:hover { border-color: var(--line); background: var(--panel2); }
+  .queue-item:active { transform: translateX(3px); }
+  .queue-item.active { background: var(--lime); color: #081009; }
+  .queue-item.active .q-state { color: #081009; font-weight: 700; }
+  .queue-item.done:not(.active) { color: var(--muted); }
+  .queue-item.done:not(.active) .q-state { color: var(--lime); }
+  .queue-item.rejected:not(.active) .q-state { color: var(--red); }
+  .queue-item.final:not(.active) .q-state { color: var(--amber); }
+  .q-index { opacity: .65; }
+  .q-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .q-state { color: var(--amber); font-size: 9px; }
+  .meter { position: absolute; right: 19px; bottom: 21px; left: 19px; }
+  .meter-top { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--muted); }
+  .meter-track { height: 3px; overflow: hidden; background: var(--line); }
+  .meter-fill { height: 100%; width: 0; background: var(--lime); transition: width .45s cubic-bezier(.16,1,.3,1); }
+  .stage { min-width: 0; display: grid; grid-template-rows: 55px 1fr; background: #080c0a; }
+  .stage-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0; font-size: 12px; letter-spacing: .05em; }
+  .sequence { color: var(--muted); }
+  .sequence b { color: var(--lime); }
+  .viewport { position: relative; min-height: 0; padding: clamp(14px,2vw,28px); overflow: hidden; }
+  .candidate { display: grid; grid-template-rows: 43px 1fr; height: 100%; min-height: 440px; border: 1px solid var(--line);
+    background: var(--panel); opacity: 0; transform: translateX(35px); animation: candidate-in .5s .2s cubic-bezier(.16,1,.3,1) forwards;
+    transition: opacity .22s, transform .36s cubic-bezier(.4,0,.2,1), filter .22s; }
+  .candidate.leaving { opacity: 0; filter: blur(3px); transform: translateX(-55px); }
+  .candidate.entering { opacity: 0; transform: translateX(55px); animation: none; }
+  .candidate-head { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+  .candidate-id { color: var(--lime); }
+  .candidate-tools { display: flex; gap: 14px; align-items: center; }
+  .open { color: var(--muted); text-decoration: none; }
+  .open:hover { color: var(--cyan); }
+  .status { color: var(--amber); font-size: 9px; letter-spacing: .09em; }
+  .status.kept { color: var(--lime); } .status.rejected { color: var(--red); } .status.final { color: var(--amber); }
+  .preview { position: relative; min-height: 0; overflow: hidden; background: #0a0e0c; }
+  .preview iframe { width: 100%; height: 100%; border: 0; background: #fff; opacity: 0; transition: opacity .35s; }
+  .preview.loaded iframe { opacity: 1; }
+  .loader { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: #0a0e0c; transition: opacity .35s, visibility .35s; }
+  .preview.loaded .loader { visibility: hidden; opacity: 0; }
+  .scan { width: min(430px,70%); }
+  .scan i { display: block; height: 9px; margin: 12px 0; background: linear-gradient(90deg,#15201b 20%,#2c3b34 45%,#15201b 70%);
+    background-size: 220% 100%; animation: scan 1s linear infinite; }
+  .scan i:first-child { width: 34%; } .scan i:nth-child(2) { height: 105px; } .scan i:last-child { width: 72%; }
+  .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .empty b { display: block; color: var(--lime); font-size: 18px; }
+  .empty span { display: block; margin-top: 8px; color: var(--muted); }
+  .review { display: grid; grid-template-rows: auto 1fr auto; border-left: 1px solid var(--line); background: var(--panel); }
+  .review-head { padding: 18px; border-bottom: 1px solid var(--line); }
+  .review-head span { color: var(--cyan); font-size: 10px; letter-spacing: .13em; }
+  .review-head p { margin: 0; color: var(--muted); }
+  .review-head .thesis-copy { margin: 12px 0 7px; color: var(--ink); font-size: 13px; line-height: 1.5; font-weight: 600;
+    overflow-wrap: anywhere; }
+  .notes { display: flex; flex-direction: column; padding: 18px; }
+  .notes label { margin-bottom: 8px; color: var(--muted); }
+  .notes textarea { flex: 1; width: 100%; min-height: 150px; padding: 12px; resize: none; border: 1px solid var(--line); background: #080c0a;
+    transition: border-color .18s, box-shadow .18s; }
+  .notes textarea:hover { border-color: #506057; }
+  .notes textarea:focus { border-color: var(--cyan); outline: 0; box-shadow: 0 0 0 1px var(--cyan); }
+  .hint { min-height: 2.8em; margin: 10px 0 0; color: var(--muted); font-size: 10px; }
+  .hint.error { color: var(--red); }
+  .decision { display: grid; gap: 7px; padding: 16px 18px 18px; border-top: 1px solid var(--line); }
+  .action { display: flex; justify-content: space-between; padding: 10px; border: 1px solid var(--line); background: #121916; text-align: left;
+    cursor: pointer; transition: background .13s, color .13s, border-color .13s, transform .08s; }
+  .action:hover { border-color: var(--lime); color: var(--lime); }
+  .action.reject:hover { border-color: var(--red); color: var(--red); }
+  .action.final:hover { border-color: var(--amber); color: var(--amber); }
+  .action:active { background: var(--lime); color: #081009; transform: scale(.97); }
+  .action:disabled { cursor: wait; opacity: .45; }
+  kbd { padding: 1px 5px; border: 1px solid var(--line); background: #111714; color: var(--ink); }
+  .action kbd { padding: 0 4px; border-color: currentColor; }
+  footer { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-top: 1px solid var(--line); background: #090d0b; color: var(--muted); }
+  footer b { color: var(--ink); }
+  .keys { display: flex; gap: 16px; }
+  .keys span { display: flex; align-items: center; gap: 6px; }
+  .signal { position: fixed; top: 0; left: 50%; z-index: 80; display: flex; align-items: center; gap: 16px; padding: 10px 14px;
+    background: var(--lime); color: #071007; transform: translate(-50%,-120%); transition: transform .32s cubic-bezier(.2,1.45,.4,1); }
+  .signal.show { transform: translate(-50%,64px); }
+  .signal strong { letter-spacing: .1em; } .signal span { opacity: .65; }
+  dialog { width: min(480px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    box-shadow: 0 24px 90px rgba(0,0,0,.72); }
+  dialog::backdrop { background: rgba(3,6,5,.82); backdrop-filter: blur(4px); }
+  .modal-form { display: grid; }
+  .modal-head { padding: 18px; border-bottom: 1px solid var(--line); }
+  .modal-head span { color: var(--cyan); font-size: 10px; letter-spacing: .13em; }
+  .modal-head h2 { margin: 10px 0 0; font: 600 26px/1.05 ui-sans-serif, system-ui, sans-serif; letter-spacing: -.035em; }
+  .modal-choice { color: var(--lime); }
+  dialog.rejected .modal-choice { color: var(--red); }
+  dialog.final .modal-choice { color: var(--amber); }
+  .modal-body { padding: 18px; }
+  .modal-body label { display: block; margin-bottom: 8px; color: var(--muted); }
+  .modal-body textarea { width: 100%; min-height: 130px; padding: 12px; resize: vertical; border: 1px solid var(--line); background: #080c0a; }
+  .modal-body textarea:focus { border-color: var(--cyan); outline: 0; box-shadow: 0 0 0 1px var(--cyan); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 18px 18px; border-top: 1px solid var(--line); }
+  .modal-button { padding: 9px 12px; border: 1px solid var(--line); background: #121916; cursor: pointer; }
+  .modal-button:hover { border-color: var(--cyan); color: var(--cyan); }
+  .modal-button.confirm { border-color: var(--lime); color: var(--lime); }
+  dialog.rejected .modal-button.confirm { border-color: var(--red); color: var(--red); }
+  dialog.final .modal-button.confirm { border-color: var(--amber); color: var(--amber); }
+  @keyframes candidate-in { to { opacity: 1; transform: none; } }
+  @keyframes blink { 50% { opacity: .15; } }
+  @keyframes scan { to { background-position: -220% 0; } }
+  @media (max-width: 1000px) {
+    main { grid-template-columns: 190px 1fr; }
+    .review { position: fixed; right: 0; bottom: 38px; left: 190px; z-index: 30; height: 330px;
+      transform: translateY(calc(100% - 48px)); transition: transform .3s; }
+    .review:focus-within, .review:hover { transform: none; }
+    .review-head { height: 48px; padding: 9px 16px; }
+    .review-head h2, .review-head p { display: none; }
+    .notes { padding: 12px; }
+    .decision { grid-template-columns: repeat(3,1fr); }
+    .action { font-size: 10px; }
+    .meter { display: none; }
+    .viewport { padding-bottom: 58px; }
+  }
+  @media (max-width: 700px) {
+    body { overflow: auto; }
+    .app { height: auto; min-height: 100vh; }
+    header { grid-template-columns: 1fr auto; }
+    .path { display: none; }
+    main { grid-template-columns: 1fr; }
+    aside { display: none; }
+    .viewport { height: 600px; }
+    .review { left: 0; }
+    .keys { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important;
+      animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
 </style>
-<header>
-  <h1>${escapeHtml(m.title)}</h1>
-  <label>Generation <select id="gen"></select></label>
-  <label class="toggle"><input type="checkbox" id="showRejected"> show rejected</label>
-  <span id="summary" class="meta"></span>
-</header>
-<div class="grid" id="grid"></div>
+<div class="boot"><div class="boot-line"><span>OPENING SINGLE REVIEW CHANNEL</span><i></i></div></div>
+<div class="app">
+  <header>
+    <div class="brand">DD / FOCUS</div>
+    <div class="path">EXPLORATIONS / <b>${escapeHtml(m.title)}</b> / <select id="gen" aria-label="Generation"></select></div>
+    <div class="health"><i></i><span id="pending"></span></div>
+  </header>
+  <main>
+    <aside>
+      <div class="label">REVIEW QUEUE</div>
+      <nav class="queue" id="queue" aria-label="Review queue"></nav>
+      <div class="meter"><div class="meter-top"><span>REVIEWED</span><span id="meter-count"></span></div>
+        <div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div>
+      </div>
+    </aside>
+    <section class="stage">
+      <div class="stage-bar"><h1>THESIS / ONE DECISION OWNS THE SCREEN</h1><span class="sequence"><b id="position">00</b> / <span id="total">00</span></span></div>
+      <div class="viewport" id="viewport">
+        <article class="candidate" id="candidate">
+          <div class="candidate-head"><span><span class="candidate-id" id="candidate-id"></span> · <span id="lineage"></span></span>
+            <span class="candidate-tools"><a class="open" id="open" target="_blank">OPEN ↗</a><span class="status" id="status"></span></span>
+          </div>
+          <div class="preview" id="preview"><div class="loader"><div class="scan"><i></i><i></i><i></i></div></div>
+            <iframe id="frame" title="Variant preview"></iframe>
+          </div>
+        </article>
+        <div class="empty" id="empty" hidden><div><b>QUEUE CLEAR</b><span>No candidates exist in this generation.</span></div></div>
+      </div>
+    </section>
+    <section class="review" id="review">
+      <div class="review-head"><span>ACTIVE DECISION</span><p class="thesis-copy" id="thesis"></p><p id="varies"></p></div>
+      <div class="notes"><label for="verdict">REASON REQUIRED</label><textarea id="verdict" placeholder="Why does this survive or fail?"></textarea>
+        <p class="hint" id="hint">This note becomes evidence for the next generation.</p></div>
+      <div class="decision"><button class="action keep" data-state="kept"><span>KEEP IN PLAY</span><kbd>1</kbd></button>
+        <button class="action reject" data-state="rejected"><span>SET ASIDE</span><kbd>2</kbd></button>
+        <button class="action final" data-state="final"><span>CHOOSE FINAL</span><kbd>3</kbd></button></div>
+    </section>
+  </main>
+  <footer><span>LOCAL SESSION · VERDICTS WRITE TO MANIFEST</span><div class="keys"><span><kbd>J</kbd><kbd>K</kbd> queue</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> verdict</span></div><b>DD 0.1</b></footer>
+</div>
+<div class="signal" role="status"><strong></strong><span>advancing review queue</span></div>
+<dialog id="comment-modal" aria-labelledby="comment-title">
+  <form class="modal-form" id="comment-form">
+    <div class="modal-head"><span>VERDICT REMEMBERED</span><h2 id="comment-title">Add a reason for <strong class="modal-choice" id="modal-choice"></strong></h2></div>
+    <div class="modal-body"><label for="modal-comment">REASON REQUIRED</label>
+      <textarea id="modal-comment" required placeholder="Why does this survive or fail?"></textarea></div>
+    <div class="modal-actions"><button class="modal-button" id="modal-cancel" type="button">CANCEL</button>
+      <button class="modal-button confirm" type="submit">RECORD VERDICT</button></div>
+  </form>
+</dialog>
 <script>
 let manifest = ${JSON.stringify(m)};
-const $grid = document.getElementById("grid");
 const $gen = document.getElementById("gen");
-const $showRejected = document.getElementById("showRejected");
-const $summary = document.getElementById("summary");
+const $queue = document.getElementById("queue");
+const $candidate = document.getElementById("candidate");
+const $preview = document.getElementById("preview");
+const $frame = document.getElementById("frame");
+const $hint = document.getElementById("hint");
+const $signal = document.querySelector(".signal");
+const $modal = document.getElementById("comment-modal");
+const $modalComment = document.getElementById("modal-comment");
+const buttons = [...document.querySelectorAll(".action")];
+let current = 0;
+let busy = false;
+let signalTimer;
+let pendingDecision = null;
 
 function generations() {
   return [...new Set(manifest.variants.map(v => v.generation))].sort((a, b) => a - b);
@@ -530,85 +691,182 @@ function generations() {
 
 function renderGenPicker() {
   const gens = generations();
-  const current = Number($gen.value) || gens.at(-1) || 1;
-  $gen.innerHTML = gens.map(g => \`<option value="\${g}">\${g}</option>\`).join("");
-  $gen.value = String(gens.includes(current) ? current : gens.at(-1));
+  const selected = Number($gen.value) || gens.at(-1) || manifest.current_generation || 1;
+  const choices = gens.length ? gens : [manifest.current_generation || 1];
+  $gen.innerHTML = choices.map(g => \`<option value="\${g}">GEN-\${String(g).padStart(2,"0")}</option>\`).join("");
+  $gen.value = String(choices.includes(selected) ? selected : choices.at(-1));
 }
 
 function esc(s) {
   return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-function render() {
-  const gen = Number($gen.value);
-  const all = manifest.variants.filter(v => v.generation === gen);
-  const shown = $showRejected.checked ? all : all.filter(v => v.status !== "rejected");
-
-  const pending = manifest.variants.filter(v => v.status === "pending").length;
-  $summary.textContent = pending
-    ? pending + " pending across all generations — next generation is blocked"
-    : "all graded";
-
-  if (!shown.length) {
-    $grid.innerHTML = '<p class="empty">Nothing to show in this generation.</p>';
-    return;
-  }
-
-  $grid.innerHTML = shown.map(v => \`
-    <article class="card \${v.status}" data-id="\${v.id}">
-      <div class="card-head">
-        <span class="id">\${v.id}</span>
-        <span class="badge \${v.status}">\${v.status}</span>
-        \${v.wildcard ? '<span class="badge">wildcard</span>' : ""}
-        <p class="thesis">\${esc(v.thesis)}</p>
-        <p class="meta">\${v.parent ? "child of " + v.parent + " — " : ""}\${esc(v.varies)}</p>
-      </div>
-      <iframe src="/v/\${v.id}/" loading="lazy" title="\${v.id}"></iframe>
-      <div class="verdict">
-        <textarea placeholder="Why does it survive, or why does it die? Required.">\${esc(v.comment)}</textarea>
-        <div class="actions">
-          <button class="keep">Keep</button>
-          <button class="reject">Reject</button>
-          <button class="final">Select as final</button>
-          <a href="/v/\${v.id}/" target="_blank" style="margin-left:auto;align-self:center;color:var(--muted)">open ↗</a>
-        </div>
-        <p class="err"></p>
-      </div>
-    </article>\`).join("");
+function variants() {
+  return manifest.variants.filter(v => v.generation === Number($gen.value));
 }
 
-async function submit(card, status) {
-  const id = card.dataset.id;
-  const comment = card.querySelector("textarea").value;
-  const err = card.querySelector(".err");
-  err.textContent = "";
+function queueState(v, active) {
+  if (v.status === "pending") return active ? "NOW" : "WAIT";
+  return v.status === "rejected" ? "DROP" : v.status === "final" ? "FINAL" : "KEEP";
+}
 
-  const url = status === "final" ? \`/api/variants/\${id}/final\` : \`/api/variants/\${id}\`;
+function renderQueue() {
+  const all = variants();
+  const reviewed = all.filter(v => v.status !== "pending").length;
+  $queue.innerHTML = all.map((v, index) => \`<button class="queue-item \${index === current ? "active" : ""} \${v.status !== "pending" ? "done " + v.status : ""}" data-index="\${index}">
+    <span class="q-index">\${String(index + 1).padStart(2,"0")}</span><span class="q-title">\${esc(v.thesis)}</span><span class="q-state">\${queueState(v, index === current)}</span></button>\`).join("");
+  document.getElementById("meter-count").textContent = reviewed + " / " + all.length;
+  document.getElementById("meter-fill").style.width = (all.length ? reviewed / all.length * 100 : 0) + "%";
+  document.getElementById("total").textContent = String(all.length).padStart(2,"0");
+}
+
+function renderHealth() {
+  const pending = manifest.variants.filter(v => v.status === "pending").length;
+  const health = document.querySelector(".health");
+  health.classList.toggle("clear", pending === 0);
+  document.getElementById("pending").textContent = pending ? pending + " PENDING" : "ALL GRADED";
+}
+
+function paint(index, reload = true) {
+  const all = variants();
+  current = Math.max(0, Math.min(index, all.length - 1));
+  renderQueue();
+  renderHealth();
+  const v = all[current];
+  const empty = document.getElementById("empty");
+  $candidate.hidden = !v;
+  empty.hidden = Boolean(v);
+  document.getElementById("review").hidden = !v;
+  if (!v) { document.getElementById("position").textContent = "00"; return; }
+
+  document.getElementById("candidate-id").textContent = v.id.toUpperCase();
+  document.getElementById("lineage").textContent = v.wildcard ? "WILDCARD / ROOT" : v.parent ? "CHILD OF " + v.parent.toUpperCase() : "ROOT VARIANT";
+  document.getElementById("thesis").textContent = v.thesis;
+  document.getElementById("varies").textContent = v.varies;
+  document.getElementById("position").textContent = String(current + 1).padStart(2,"0");
+  document.getElementById("verdict").value = v.comment || "";
+  const status = document.getElementById("status");
+  status.textContent = v.status === "pending" ? "PENDING REVIEW" : v.status.toUpperCase();
+  status.className = "status " + v.status;
+  const url = "/v/" + encodeURIComponent(v.id) + "/";
+  const open = document.getElementById("open");
+  open.href = url;
+  open.setAttribute("aria-label", "Open " + v.id + " in a new tab");
+  $frame.title = v.id + " preview";
+  $hint.textContent = "This note becomes evidence for the next generation.";
+  $hint.classList.remove("error");
+  if (reload && $frame.getAttribute("src") !== url) {
+    $preview.classList.remove("loaded");
+    $frame.src = url;
+  }
+}
+
+function move(index) {
+  const all = variants();
+  if (busy || !all.length) return;
+  const next = (index + all.length) % all.length;
+  if (next === current) return;
+  busy = true;
+  $candidate.classList.add("leaving");
+  setTimeout(() => {
+    paint(next);
+    $candidate.classList.remove("leaving");
+    $candidate.classList.add("entering");
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      $candidate.classList.remove("entering");
+      busy = false;
+    }));
+  }, 260);
+}
+
+async function submit(status) {
+  if (busy) return;
+  const all = variants();
+  const v = all[current];
+  if (!v) return;
+  const comment = document.getElementById("verdict").value;
+  $hint.textContent = "Saving verdict…";
+  $hint.classList.remove("error");
+  busy = true;
+  buttons.forEach(button => button.disabled = true);
+
+  const url = status === "final" ? \`/api/variants/\${v.id}/final\` : \`/api/variants/\${v.id}\`;
   const res = await fetch(url, {
     method: status === "final" ? "POST" : "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ status, comment }),
   });
   const body = await res.json();
-  if (!res.ok) { err.textContent = body.error; return; }
+  if (!res.ok) {
+    $hint.textContent = body.error || "The verdict could not be saved.";
+    $hint.classList.add("error");
+    busy = false;
+    buttons.forEach(button => button.disabled = false);
+    return;
+  }
 
   manifest = await (await fetch("/api/manifest")).json();
-  render();
+  const refreshed = variants();
+  const savedIndex = refreshed.findIndex(item => item.id === v.id);
+  current = savedIndex < 0 ? 0 : savedIndex;
+  paint(current, false);
+  $signal.querySelector("strong").textContent = v.id.toUpperCase() + " / " + status.toUpperCase();
+  $signal.classList.add("show");
+  clearTimeout(signalTimer);
+  signalTimer = setTimeout(() => $signal.classList.remove("show"), 1350);
+  busy = false;
+  buttons.forEach(button => button.disabled = false);
+
+  const next = refreshed.findIndex((item, index) => index > current && item.status === "pending");
+  const wrap = refreshed.findIndex(item => item.status === "pending");
+  if (next >= 0 || wrap >= 0) setTimeout(() => move(next >= 0 ? next : wrap), 520);
 }
 
-$grid.addEventListener("click", e => {
-  const button = e.target.closest("button");
-  if (!button) return;
-  const status = button.classList.contains("keep") ? "kept"
-    : button.classList.contains("reject") ? "rejected"
-    : button.classList.contains("final") ? "final" : null;
-  if (status) submit(button.closest(".card"), status);
-});
+function requestDecision(status) {
+  const comment = document.getElementById("verdict").value;
+  if (comment.trim()) { submit(status); return; }
+  pendingDecision = status;
+  const labels = { kept: "KEEP IN PLAY", rejected: "SET ASIDE", final: "CHOOSE FINAL" };
+  document.getElementById("modal-choice").textContent = labels[status];
+  $modal.className = status;
+  $modalComment.value = comment;
+  $modal.showModal();
+  $modalComment.focus();
+}
 
-$gen.addEventListener("change", render);
-$showRejected.addEventListener("change", render);
+$queue.addEventListener("click", e => {
+  const item = e.target.closest(".queue-item");
+  if (item) move(Number(item.dataset.index));
+});
+document.querySelector(".decision").addEventListener("click", e => {
+  const button = e.target.closest(".action");
+  if (button) requestDecision(button.dataset.state);
+});
+document.getElementById("comment-form").addEventListener("submit", e => {
+  e.preventDefault();
+  if (!pendingDecision || !$modalComment.value.trim()) return;
+  const decision = pendingDecision;
+  document.getElementById("verdict").value = $modalComment.value.trim();
+  pendingDecision = null;
+  $modal.close();
+  submit(decision);
+});
+document.getElementById("modal-cancel").addEventListener("click", () => $modal.close());
+$modal.addEventListener("close", () => { pendingDecision = null; });
+$frame.addEventListener("load", () => $preview.classList.add("loaded"));
+$gen.addEventListener("change", () => { current = 0; paint(0); });
+addEventListener("keydown", e => {
+  if (e.target.matches("textarea, select")) return;
+  if (e.key.toLowerCase() === "j") move(current + 1);
+  if (e.key.toLowerCase() === "k") move(current - 1);
+  if (["1","2","3"].includes(e.key)) {
+    e.preventDefault();
+    buttons[Number(e.key) - 1].click();
+  }
+});
 renderGenPicker();
-render();
+paint(0);
+setTimeout(() => document.querySelector(".boot").classList.add("done"), 650);
 </script>
 </html>`;
 }
