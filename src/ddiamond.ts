@@ -82,15 +82,21 @@ async function findScratchRoot(from: string): Promise<string | null> {
   }
 }
 
-/**
- * Resolve the exploration directory from the cwd, overridable with --exploration.
- * Ambiguity is an error rather than a guess: picking the wrong exploration
- * silently writes verdicts into the wrong history.
- */
-export async function findExploration(
+/** Every slug under `scratch` that holds a manifest, alphabetically. */
+async function listExplorations(scratch: string): Promise<string[]> {
+  const found: string[] = [];
+  for await (const entry of Deno.readDir(scratch)) {
+    if (!entry.isDirectory) continue;
+    if (await isFile(join(scratch, entry.name, "manifest.yaml"))) found.push(entry.name);
+  }
+  return found.sort();
+}
+
+/** Resolve `scratch` and the slug given explicitly, leaving ambiguity for the caller. */
+async function resolveScratch(
   cwd: string,
   slugOverride?: string,
-): Promise<string> {
+): Promise<{ scratch: string; dir?: string; slugs: string[] }> {
   const scratch = await findScratchRoot(cwd);
   if (!scratch) {
     throw new DdError(
@@ -103,25 +109,81 @@ export async function findExploration(
     if (!(await isFile(join(dir, "manifest.yaml")))) {
       throw new DdError(`No exploration named "${slugOverride}" in ${scratch}`);
     }
-    return dir;
+    return { scratch, dir, slugs: [slugOverride] };
   }
 
-  const found: string[] = [];
-  for await (const entry of Deno.readDir(scratch)) {
-    if (!entry.isDirectory) continue;
-    if (await isFile(join(scratch, entry.name, "manifest.yaml"))) found.push(entry.name);
-  }
-
-  if (found.length === 0) {
+  const slugs = await listExplorations(scratch);
+  if (slugs.length === 0) {
     throw new DdError(`No explorations found in ${scratch}. Run \`dd init\` first.`);
   }
-  if (found.length > 1) {
+  return { scratch, dir: slugs.length === 1 ? join(scratch, slugs[0]) : undefined, slugs };
+}
+
+/**
+ * Resolve the exploration directory from the cwd, overridable with --exploration.
+ * Ambiguity is an error rather than a guess: picking the wrong exploration
+ * silently writes verdicts into the wrong history.
+ */
+export async function findExploration(
+  cwd: string,
+  slugOverride?: string,
+): Promise<string> {
+  const { scratch, dir, slugs } = await resolveScratch(cwd, slugOverride);
+  if (dir) return dir;
+  throw new DdError(
+    `Several explorations in ${scratch} (${slugs.join(", ")}). ` +
+      `Name one with --exploration <slug>.`,
+  );
+}
+
+/** A one-line label for the picker: the manifest title when it is worth showing. */
+async function explorationLabel(scratch: string, slug: string): Promise<string> {
+  try {
+    const m = await readManifest(join(scratch, slug));
+    const kept = m.variants.filter((v) => v.status === "kept").length;
+    const final = m.variants.some((v) => v.status === "final");
+    const state = final ? "final chosen" : `gen ${m.current_generation}, ${m.variants.length} variants, ${kept} kept`;
+    return m.title && m.title !== slug ? `${slug} — ${m.title} (${state})` : `${slug} (${state})`;
+  } catch {
+    return slug;
+  }
+}
+
+/**
+ * Like `findExploration`, but asks when several are open instead of failing.
+ * Only for commands that read rather than write history, and only on a tty —
+ * a piped or scripted run still gets the explicit error.
+ */
+export async function pickExploration(
+  cwd: string,
+  slugOverride?: string,
+): Promise<string> {
+  const { scratch, dir, slugs } = await resolveScratch(cwd, slugOverride);
+  if (dir) return dir;
+
+  if (!Deno.stdin.isTerminal()) {
     throw new DdError(
-      `Several explorations in ${scratch} (${found.join(", ")}). ` +
+      `Several explorations in ${scratch} (${slugs.join(", ")}). ` +
         `Name one with --exploration <slug>.`,
     );
   }
-  return join(scratch, found[0]);
+
+  console.log(`Several explorations in ${scratch}:\n`);
+  for (const [i, slug] of slugs.entries()) {
+    console.log(`  ${i + 1}. ${await explorationLabel(scratch, slug)}`);
+  }
+  console.log("");
+
+  while (true) {
+    const answer = prompt(`Which one? [1-${slugs.length}]`)?.trim() ?? "";
+    if (answer === "") {
+      throw new DdError(`No exploration chosen. Name one with --exploration <slug>.`);
+    }
+    const n = Number(answer);
+    if (Number.isInteger(n) && n >= 1 && n <= slugs.length) return join(scratch, slugs[n - 1]);
+    if (slugs.includes(answer)) return join(scratch, answer);
+    console.log(`Pick a number between 1 and ${slugs.length}, or type a slug.`);
+  }
 }
 
 // ------------------------------------------------------------------- io
@@ -888,7 +950,8 @@ const HELP = `ddiamond - agentic double diamond workflow
   ddiamond serve [--port N]                         dashboard, default port ${DEFAULT_PORT}
 
 The exploration is resolved by walking up from the cwd to a .scratch directory.
-Override with --exploration <slug> when more than one is open.`;
+Override with --exploration <slug> when more than one is open; serve asks
+which one instead, when it is run interactively.`;
 
 async function main(): Promise<void> {
   const args = parseArgs(Deno.args, {
@@ -907,7 +970,10 @@ async function main(): Promise<void> {
     return;
   }
 
-  const dir = await findExploration(Deno.cwd(), args.exploration);
+  // `serve` only reads the exploration, so it can afford to ask which one.
+  const dir = command === "serve"
+    ? await pickExploration(Deno.cwd(), args.exploration)
+    : await findExploration(Deno.cwd(), args.exploration);
 
   switch (command) {
     case "next-gen": await cmdNextGen(dir); break;
